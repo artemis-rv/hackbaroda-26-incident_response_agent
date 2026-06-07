@@ -25,7 +25,7 @@ async def diagnose(incident_id: str):
 
     # In a real setup, we'd parse the LLM JSON output to fill these fields.
     # For now, let's call the LLM and assume it returns JSON.
-    raw_diagnosis, memories = diagnose_incident(incident)
+    raw_diagnosis, memories = await diagnose_incident(incident)
     
     try:
         diag_data = json.loads(raw_diagnosis)
@@ -91,7 +91,7 @@ Root Cause: {incident.resolution.actual_root_cause}
 Resolution: {incident.resolution.fix_applied}
 Lessons Learned: {incident.resolution.lessons_learned}
 """
-    retain_memory(memory_text, metadata={
+    await retain_memory(memory_text, metadata={
         "incident_id": str(incident.id),
         "service": incident.service,
         "severity": incident.severity,

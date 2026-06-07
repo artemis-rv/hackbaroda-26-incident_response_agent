@@ -42,9 +42,8 @@ def test_connection():
         collection = db['test_collection']
         
         print("--- Create a new document ---")
-        title = input("Enter title: ")
-        description = input("Enter description: ")
-        
+        title = "Test title"
+        description = "Test description"
         # Convert to dictionary (which maps to JSON/BSON in MongoDB)
         document = {
             "title": title,

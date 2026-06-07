@@ -1,10 +1,10 @@
 import os
-import requests
+import httpx
 from typing import List, Dict
 
-HINDSIGHT_BASE_URL = os.getenv("HINDSIGHT_BASE_URL", "").rstrip("/")
-HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "")
-HINDSIGHT_NAMESPACE = os.getenv("HINDSIGHT_NAMESPACE", "incident-memory")
+HINDSIGHT_BASE_URL = os.getenv("HINDSIGHT_BASE_URL", "https://api.hindsight.vectorize.io").strip().rstrip("/")
+HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "").strip()
+HINDSIGHT_NAMESPACE = os.getenv("HINDSIGHT_NAMESPACE", "incident-memory").strip()
 
 def _headers():
     return {
@@ -12,48 +12,52 @@ def _headers():
         "Content-Type": "application/json",
     }
 
-def recall_memories(query: str, top_k: int = 3) -> List[str]:
+async def recall_memories(query: str, top_k: int = 3) -> List[str]:
     """
-    NOTE:
-    Endpoint payload may vary by Hindsight deployment/version.
-    Adjust path/fields if needed after checking your Hindsight docs.
+    Recalls memories from Vectorize Hindsight API.
     """
     if not HINDSIGHT_BASE_URL or not HINDSIGHT_API_KEY:
         return []
 
-    url = f"{HINDSIGHT_BASE_URL}/api/memory/recall"
+    url = f"{HINDSIGHT_BASE_URL}/v1/default/banks/{HINDSIGHT_NAMESPACE}/memories/recall"
     payload = {
-        "namespace": HINDSIGHT_NAMESPACE,
-        "query": query,
-        "top_k": top_k
+        "query": query
     }
 
     try:
-        res = requests.post(url, headers=_headers(), json=payload, timeout=20)
-        if res.status_code >= 300:
-            return []
-        data = res.json()
-        items = data.get("items", [])
-        return [item.get("text", "") for item in items if item.get("text")]
-    except Exception:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            res = await client.post(url, headers=_headers(), json=payload)
+            if res.status_code >= 300:
+                print(f"Hindsight recall failed: {res.status_code} - {res.text}")
+                return []
+                
+            data = res.json()
+            items = data.get("memories", data.get("items", []))
+            
+            return [
+                item if isinstance(item, str) else item.get("content", item.get("text", str(item))) 
+                for item in items
+            ]
+    except Exception as e:
+        print(f"Hindsight recall error: {e}")
         return []
 
-def retain_memory(text: str, metadata: Dict):
+async def retain_memory(text: str, metadata: Dict):
     """
-    NOTE:
-    Endpoint payload may vary by Hindsight deployment/version.
+    Stores memories in Vectorize Hindsight API.
     """
     if not HINDSIGHT_BASE_URL or not HINDSIGHT_API_KEY:
         return
 
-    url = f"{HINDSIGHT_BASE_URL}/api/memory/retain"
+    url = f"{HINDSIGHT_BASE_URL}/v1/default/banks/{HINDSIGHT_NAMESPACE}/memories/retain"
     payload = {
-        "namespace": HINDSIGHT_NAMESPACE,
-        "text": text,
-        "metadata": metadata
+        "content": text
     }
 
     try:
-        requests.post(url, headers=_headers(), json=payload, timeout=20)
-    except Exception:
-        pass
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            res = await client.post(url, headers=_headers(), json=payload)
+            if res.status_code >= 300:
+                print(f"Hindsight retain failed: {res.status_code} - {res.text}")
+    except Exception as e:
+        print(f"Hindsight retain error: {e}")

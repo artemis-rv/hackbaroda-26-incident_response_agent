@@ -35,9 +35,9 @@ Instructions:
 {instructions}
 """
 
-def diagnose_incident(incident):
+async def diagnose_incident(incident):
     query = f"{incident.service} {incident.severity} {' '.join(incident.symptoms)}"
-    memories = recall_memories(query, top_k=3)
+    memories = await recall_memories(query, top_k=3)
     prompt = build_prompt(incident, memories)
     diagnosis = generate_diagnosis(prompt)
     return diagnosis, memories
