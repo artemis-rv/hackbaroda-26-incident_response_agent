@@ -27,7 +27,12 @@ async def diagnose(incident_id: str):
     raw_diagnosis, memories = await diagnose_incident(incident)
     
     try:
-        diag_data = json.loads(raw_diagnosis)
+        import re
+        match = re.search(r'\{.*\}', raw_diagnosis, re.DOTALL)
+        if match:
+            diag_data = json.loads(match.group())
+        else:
+            raise json.JSONDecodeError("No JSON found", raw_diagnosis, 0)
     except json.JSONDecodeError:
         diag_data = {
             "root_causes": ["Unknown"],
