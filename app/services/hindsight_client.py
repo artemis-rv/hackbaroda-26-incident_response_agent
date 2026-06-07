@@ -32,10 +32,13 @@ async def recall_memories(query: str, top_k: int = 3) -> List[str]:
                 return []
                 
             data = res.json()
-            items = data.get("memories", data.get("items", []))
+            items = data.get("results", data.get("memories", data.get("items", [])))
             
             return [
-                item if isinstance(item, str) else item.get("content", item.get("text", str(item))) 
+                {
+                    "text": item if isinstance(item, str) else item.get("content", item.get("text", str(item))),
+                    "metadata": item.get("metadata", {}) if isinstance(item, dict) else {}
+                }
                 for item in items
             ]
     except Exception as e:
@@ -49,9 +52,14 @@ async def retain_memory(text: str, metadata: Dict):
     if not HINDSIGHT_BASE_URL or not HINDSIGHT_API_KEY:
         return
 
-    url = f"{HINDSIGHT_BASE_URL}/v1/default/banks/{HINDSIGHT_NAMESPACE}/memories/retain"
+    url = f"{HINDSIGHT_BASE_URL}/v1/default/banks/{HINDSIGHT_NAMESPACE}/memories"
     payload = {
-        "content": text
+        "items": [
+            {
+                "content": text,
+                "metadata": metadata
+            }
+        ]
     }
 
     try:

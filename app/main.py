@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from app/.env
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
+# Load environment variables from .env
+load_dotenv(".env", override=True)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 
 async def main():
-    load_dotenv(os.path.join('app', '.env'))
+    load_dotenv('.env')
     await init_db()
     
     # insert 1

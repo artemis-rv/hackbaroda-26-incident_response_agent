@@ -17,9 +17,11 @@ class SimilarIncident(BaseModel):
 # AI Diagnosis Output
 # -----------------------------
 class Diagnosis(BaseModel):
-    predicted_root_cause: Optional[str] = None
-    confidence: Optional[float] = None
+    root_causes: List[str] = []
+    confidence_score: Optional[float] = None
+    impact_analysis: Optional[str] = None
     recommended_actions: List[str] = []
+    prevention_steps: List[str] = []
     similar_incidents: List[SimilarIncident] = []
 
 
@@ -114,10 +116,12 @@ class IncidentResponse(IncidentBase):
 class DiagnoseResponse(BaseModel):
     incident_id: str
 
-    likely_root_cause: str
-    confidence: float
+    root_causes: List[str]
+    confidence_score: float
+    impact_analysis: str
 
     recommended_actions: List[str]
+    prevention_steps: List[str]
 
     similar_incidents: List[SimilarIncident]
 

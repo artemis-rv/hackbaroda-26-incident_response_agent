@@ -31,20 +31,24 @@ async def diagnose(incident_id: str):
         diag_data = json.loads(raw_diagnosis)
     except json.JSONDecodeError:
         diag_data = {
-            "likely_root_cause": "Unknown",
-            "confidence": 0.0,
+            "root_causes": ["Unknown"],
+            "confidence_score": 0.0,
+            "impact_analysis": "Unknown due to LLM parsing error.",
             "recommended_actions": ["Investigate manually due to LLM parsing error."],
-            "investigation_mode": len(memories) == 0
+            "prevention_steps": ["Ensure LLM returns valid JSON."]
         }
     
     similar_incidents = []
     for m in memories:
-        similar_incidents.append(SimilarIncident(incident_id="UNKNOWN", score=0.8)) # Mocked
+        inc_id = m.get("metadata", {}).get("incident_id", "UNKNOWN")
+        similar_incidents.append(SimilarIncident(incident_id=inc_id, score=0.85))
     
     diagnosis_obj = Diagnosis(
-        predicted_root_cause=diag_data.get("likely_root_cause", "Unknown"),
-        confidence=diag_data.get("confidence", 0.0),
+        root_causes=diag_data.get("root_causes", ["Unknown"]),
+        confidence_score=diag_data.get("confidence_score", 0.0),
+        impact_analysis=diag_data.get("impact_analysis", "Unknown"),
         recommended_actions=diag_data.get("recommended_actions", []),
+        prevention_steps=diag_data.get("prevention_steps", []),
         similar_incidents=similar_incidents
     )
     
@@ -54,9 +58,11 @@ async def diagnose(incident_id: str):
 
     return DiagnoseResponse(
         incident_id=str(incident.id),
-        likely_root_cause=diagnosis_obj.predicted_root_cause,
-        confidence=diagnosis_obj.confidence,
+        root_causes=diagnosis_obj.root_causes,
+        confidence_score=diagnosis_obj.confidence_score,
+        impact_analysis=diagnosis_obj.impact_analysis,
         recommended_actions=diagnosis_obj.recommended_actions,
+        prevention_steps=diagnosis_obj.prevention_steps,
         similar_incidents=similar_incidents,
         investigation_mode=len(memories) == 0
     )

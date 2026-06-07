@@ -14,7 +14,7 @@ def get_db_url(env_path):
     return None
 
 def test_connection():
-    env_path = os.path.join('app', '.env')
+    env_path = '.env'
     mongo_url = get_db_url(env_path)
     
     if not mongo_url:

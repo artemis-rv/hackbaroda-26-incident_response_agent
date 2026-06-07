@@ -6,7 +6,7 @@ import Link from "next/link";
 import { diagnoseIncident, DiagnoseResponse } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BrainCircuit, CheckCircle2, AlertCircle, ArrowLeft, Lightbulb, History } from "lucide-react";
+import { BrainCircuit, CheckCircle2, AlertCircle, ArrowLeft, Lightbulb, History, ShieldAlert, Activity } from "lucide-react";
 
 export default function DiagnosePage() {
   const params = useParams();
@@ -43,7 +43,7 @@ export default function DiagnosePage() {
   if (error) return <div className="p-8 text-center text-destructive">Error: {error}</div>;
   if (!diagnosis) return null;
 
-  const confidencePercentage = Math.round(diagnosis.confidence * 100);
+  const confidencePercentage = Math.round((diagnosis.confidence_score || 0) * 100);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -61,12 +61,19 @@ export default function DiagnosePage() {
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center text-2xl">
             <CheckCircle2 className="w-6 h-6 mr-3 text-primary" />
-            Predicted Root Cause
+            Root Causes Ranking
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="p-4 bg-secondary/50 rounded-lg border border-border">
-            <p className="text-lg font-medium">{diagnosis.likely_root_cause}</p>
+          <div className="space-y-3">
+            {diagnosis.root_causes?.map((cause, i) => (
+              <div key={i} className="p-4 bg-secondary/50 rounded-lg border border-border flex items-start">
+                <div className="mr-4 mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                  {i + 1}
+                </div>
+                <p className="text-lg font-medium">{cause}</p>
+              </div>
+            ))}
           </div>
           
           <div className="mt-6">
@@ -79,17 +86,29 @@ export default function DiagnosePage() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <Card className="border-primary/10 shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center text-xl">
+            <Activity className="w-5 h-5 mr-3 text-blue-500" />
+            Impact Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-relaxed">{diagnosis.impact_analysis}</p>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center text-lg">
               <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
               Recommended Actions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {diagnosis.recommended_actions.map((action, i) => (
+              {diagnosis.recommended_actions?.map((action, i) => (
                 <li key={i} className="flex items-start">
                   <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
                     {i + 1}
@@ -103,11 +122,32 @@ export default function DiagnosePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <History className="w-5 h-5 mr-2 text-blue-500" />
-              Recalled from Hindsight Memory
+            <CardTitle className="flex items-center text-lg">
+              <ShieldAlert className="w-5 h-5 mr-2 text-green-500" />
+              Prevention Steps
             </CardTitle>
-            <CardDescription>Similar past incidents used for this diagnosis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {diagnosis.prevention_steps?.map((step, i) => (
+                <li key={i} className="flex items-start">
+                  <div className="mr-3 mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 text-green-600 flex items-center justify-center text-xs font-bold">
+                    {i + 1}
+                  </div>
+                  <span className="text-sm leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg">
+              <History className="w-5 h-5 mr-2 text-blue-500" />
+              Hindsight Memory
+            </CardTitle>
+            <CardDescription>Similar past incidents used</CardDescription>
           </CardHeader>
           <CardContent>
             {diagnosis.investigation_mode ? (
@@ -117,7 +157,7 @@ export default function DiagnosePage() {
               </div>
             ) : (
               <ul className="space-y-3">
-                {diagnosis.similar_incidents.map((sim, i) => (
+                {diagnosis.similar_incidents?.map((sim, i) => (
                   <li key={i} className="p-3 bg-secondary/30 rounded-lg border border-border text-sm flex justify-between items-center">
                     <span className="truncate mr-4 font-mono text-muted-foreground">{sim.incident_id}</span>
                     <span className="text-xs font-semibold px-2 py-1 bg-background rounded">Match: {Math.round(sim.score * 100)}%</span>
