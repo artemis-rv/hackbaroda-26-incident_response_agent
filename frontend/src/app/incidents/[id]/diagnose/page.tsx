@@ -157,20 +157,23 @@ export default function DiagnosePage() {
               </div>
             ) : (
               <ul className="space-y-4">
-                {diagnosis.similar_incidents?.map((sim, i) => (
+                {diagnosis.similar_incidents?.map((sim, i) => {
+                  const matchPercentage = Math.round(sim.similarity_score * 100);
+                  const badgeColor = matchPercentage >= 80 ? "bg-green-500/20 text-green-600" : matchPercentage >= 50 ? "bg-yellow-500/20 text-yellow-600" : "bg-red-500/20 text-red-600";
+                  return (
                   <li key={i} className="p-4 bg-secondary/30 rounded-lg border border-border text-sm flex flex-col space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="font-semibold text-foreground truncate mr-2">{sim.title}</span>
-                      <span className="text-xs font-bold px-2 py-1 bg-primary/20 text-primary rounded whitespace-nowrap">
-                        {Math.round(sim.similarity_score * 100)}% Match
+                      <span className="font-semibold text-foreground mr-2 whitespace-normal break-words">{sim.title}</span>
+                      <span className={`text-xs font-bold px-2 py-1 rounded whitespace-nowrap ${badgeColor}`}>
+                        {matchPercentage}% Match
                       </span>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground"><strong className="text-foreground">Root Cause:</strong> {sim.root_cause}</p>
-                      <p className="text-xs text-muted-foreground"><strong className="text-foreground">Resolution:</strong> {sim.resolution}</p>
+                    <div className="space-y-1 mt-2">
+                      <p className="text-sm text-muted-foreground whitespace-normal break-words"><strong className="text-foreground">Root Cause:</strong> {sim.root_cause}</p>
+                      <p className="text-sm text-muted-foreground whitespace-normal break-words"><strong className="text-foreground">Resolution:</strong> {sim.resolution}</p>
                     </div>
                   </li>
-                ))}
+                )})}
               </ul>
             )}
           </CardContent>

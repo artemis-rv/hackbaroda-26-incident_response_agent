@@ -2,6 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 import json
+import asyncio
 from app.models.incident import Incident
 from app.models.schemas import DiagnoseResponse, IncidentResolve, IncidentResponse, Resolution, TimelineEvent, Memory, Diagnosis, SimilarIncident
 from app.services.incident_engine import diagnose_incident
@@ -92,8 +93,8 @@ async def resolve(incident_id: str, payload: IncidentResolve):
     incident.resolved_at = datetime.utcnow()
     incident.timeline.append(TimelineEvent(event="Incident resolved"))
     
-    # Store incident in vector memory
-    await store_memory(incident, incident.resolution)
+    # Store incident in vector memory in the background
+    asyncio.create_task(store_memory(incident, incident.resolution))
 
     incident.memory = Memory(stored_in_hindsight=True, memory_summary="Retained in Semantic Memory")
     await incident.save()

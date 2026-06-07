@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env
-load_dotenv(".env", override=True)
+load_dotenv("app/.env", override=True)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
