@@ -1,19 +1,24 @@
 from beanie import Document
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import Field
+from app.models.schemas import Diagnosis, Resolution, Memory, TimelineEvent
 
 class Incident(Document):
     title: str
-    service: str
-    severity: str
-    symptoms: str
-    logs: Optional[str] = None
+    description: str
+    symptoms: List[str]
+    severity: str = "medium"
+    service: Optional[str] = None
+    environment: str = "production"
+    tags: List[str] = []
     
     status: str = "open"
-    root_cause: Optional[str] = None
-    resolution: Optional[str] = None
-    latest_diagnosis: Optional[str] = None
+    
+    diagnosis: Optional[Diagnosis] = None
+    resolution: Optional[Resolution] = None
+    memory: Optional[Memory] = None
+    timeline: List[TimelineEvent] = []
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     resolved_at: Optional[datetime] = None

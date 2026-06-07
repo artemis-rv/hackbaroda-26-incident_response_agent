@@ -6,28 +6,17 @@ def build_prompt(incident, memories):
     memory_block = "\n\n".join([f"- {m}" for m in memories]) if has_memories else "No similar past incidents found."
 
     instructions = """
-Format your response in Markdown with the following headers:
-### Likely Root Cause(s)
-[List max 3 root causes with brief reasoning]
+Return ONLY raw JSON with no markdown formatting or text outside the JSON. The JSON must have the following keys:
+- likely_root_cause (string)
+- confidence (float between 0 and 1)
+- recommended_actions (list of strings)
 
-### Confidence Score
-[Provide a percentage based on evidence]
-
-### Recommended Fix / Action Plan
-[Prioritized action plan for the first 30 minutes]
-
-### Evidence & Metrics to Check
-[What logs or metrics to check if the hypothesis is wrong]
-""" if has_memories else """
-Format your response in Markdown with the following headers:
-### Possible Causes
-[List max 3 possible causes with brief reasoning]
-
-### Investigation Steps
-[Step-by-step guide to investigate]
-
-### Logs & Metrics To Check
-[Specific logs or metrics to look for]
+Example:
+{
+  "likely_root_cause": "Database connection pool exhausted",
+  "confidence": 0.85,
+  "recommended_actions": ["Increase max connections", "Restart DB pods"]
+}
 """
 
     return f"""
@@ -37,19 +26,17 @@ Incident details:
 - Title: {incident.title}
 - Service: {incident.service}
 - Severity: {incident.severity}
-- Symptoms: {incident.symptoms}
-- Logs: {incident.logs or "N/A"}
+- Symptoms: {', '.join(incident.symptoms)}
 
 Relevant past incidents recalled from memory:
 {memory_block}
 
 Instructions:
 {instructions}
-Keep it concrete, professional, and no fluff.
 """
 
 def diagnose_incident(incident):
-    query = f"{incident.service} {incident.severity} {incident.symptoms} {incident.logs or ''}"
+    query = f"{incident.service} {incident.severity} {' '.join(incident.symptoms)}"
     memories = recall_memories(query, top_k=3)
     prompt = build_prompt(incident, memories)
     diagnosis = generate_diagnosis(prompt)

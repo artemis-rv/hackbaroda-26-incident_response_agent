@@ -1,34 +1,121 @@
+# schemas.py
+
+from datetime import datetime
+from typing import List, Optional
 from pydantic import BaseModel, Field
-from typing import Optional, List
 
-class IncidentCreate(BaseModel):
-    title: str
-    service: str
-    severity: str
-    symptoms: str
-    logs: Optional[str] = None
 
-class IncidentOut(BaseModel):
-    id: str = Field(alias="_id")
+# -----------------------------
+# Similar Incident Match
+# -----------------------------
+class SimilarIncident(BaseModel):
+    incident_id: str
+    score: float
+
+
+# -----------------------------
+# AI Diagnosis Output
+# -----------------------------
+class Diagnosis(BaseModel):
+    predicted_root_cause: Optional[str] = None
+    confidence: Optional[float] = None
+    recommended_actions: List[str] = []
+    similar_incidents: List[SimilarIncident] = []
+
+
+# -----------------------------
+# Resolution Details
+# -----------------------------
+class Resolution(BaseModel):
+    actual_root_cause: Optional[str] = None
+    fix_applied: Optional[str] = None
+    lessons_learned: Optional[str] = None
+    resolved_by: Optional[str] = None
+    resolution_time_minutes: Optional[int] = None
+
+
+# -----------------------------
+# Hindsight Memory Metadata
+# -----------------------------
+class Memory(BaseModel):
+    stored_in_hindsight: bool = False
+    memory_summary: Optional[str] = None
+
+
+# -----------------------------
+# Timeline Events
+# -----------------------------
+class TimelineEvent(BaseModel):
+    event: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# -----------------------------
+# Incident Base Schema
+# -----------------------------
+class IncidentBase(BaseModel):
     title: str
-    service: str
-    severity: str
-    symptoms: str
-    logs: Optional[str]
-    status: str
-    root_cause: Optional[str]
-    resolution: Optional[str]
-    latest_diagnosis: Optional[str]
+    description: str
+    symptoms: List[str]
+
+    severity: str = "medium"  # low, medium, high, critical
+
+    service: Optional[str] = None
+    environment: str = "production"
+
+    tags: List[str] = []
+
+
+# -----------------------------
+# Create Incident Request
+# -----------------------------
+class IncidentCreate(IncidentBase):
+    pass
+
+
+# -----------------------------
+# Resolve Incident Request
+# -----------------------------
+class IncidentResolve(BaseModel):
+    actual_root_cause: str
+    fix_applied: str
+    lessons_learned: str
+    resolved_by: Optional[str] = "Engineer"
+    resolution_time_minutes: int
+
+
+# -----------------------------
+# Incident Response Model
+# -----------------------------
+class IncidentResponse(IncidentBase):
+    incident_id: str
+
+    status: str = "open"
+
+    diagnosis: Optional[Diagnosis] = None
+    resolution: Optional[Resolution] = None
+    memory: Optional[Memory] = None
+
+    timeline: List[TimelineEvent] = []
+
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-        populate_by_name = True
 
+
+# -----------------------------
+# Diagnose Response
+# -----------------------------
 class DiagnoseResponse(BaseModel):
     incident_id: str
-    diagnosis: str
-    recalled_memories: List[str]
 
-class ResolveRequest(BaseModel):
-    root_cause: str
-    resolution: str
+    likely_root_cause: str
+    confidence: float
+
+    recommended_actions: List[str]
+
+    similar_incidents: List[SimilarIncident]
+
+    investigation_mode: bool = False
