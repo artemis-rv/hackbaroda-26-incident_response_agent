@@ -20,7 +20,10 @@ var/
 .installed.cfg
 *.egg
 venv/
+.venv/
 .env
+.env*
+app/.env
 
 # FastAPI / SQLite
 *.db
