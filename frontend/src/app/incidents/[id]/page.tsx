@@ -75,6 +75,19 @@ export default function IncidentDetails() {
             </CardContent>
           </Card>
 
+          {incident.logs && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Terminal Logs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-zinc-950 text-zinc-300 p-4 rounded-md overflow-x-auto text-xs font-mono border border-zinc-800">
+                  {incident.logs}
+                </pre>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Timeline</CardTitle>
@@ -116,6 +129,21 @@ export default function IncidentDetails() {
                   <p className="font-medium">{incident.service || "N/A"}</p>
                 </div>
               </div>
+              
+              {incident.affected_services && incident.affected_services.length > 0 && (
+                <div className="flex items-start">
+                  <Box className="w-4 h-4 mr-3 mt-1 text-muted-foreground opacity-50" />
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Affected Services</p>
+                    <div className="flex flex-wrap gap-1">
+                      {incident.affected_services.map(s => (
+                        <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-start">
                 <Tag className="w-4 h-4 mr-3 mt-1 text-muted-foreground" />
                 <div>

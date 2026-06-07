@@ -21,7 +21,9 @@ async def create_incident(payload: IncidentCreate):
         service=payload.service,
         environment=payload.environment,
         tags=payload.tags,
-        timeline=[TimelineEvent(event="Incident reported")]
+        logs=payload.logs,
+        affected_services=payload.affected_services,
+        timeline=(payload.timeline or []) + [TimelineEvent(event="Incident reported")]
     )
     await obj.insert()
     return serialize_incident(obj)

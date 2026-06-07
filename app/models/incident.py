@@ -12,6 +12,8 @@ class Incident(Document):
     service: Optional[str] = None
     environment: str = "production"
     tags: List[str] = []
+    logs: Optional[str] = None
+    affected_services: List[str] = []
     
     status: str = "open"
     

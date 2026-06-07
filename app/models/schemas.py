@@ -64,13 +64,16 @@ class IncidentBase(BaseModel):
     environment: str = "production"
 
     tags: List[str] = []
+    
+    logs: Optional[str] = None
+    affected_services: List[str] = []
 
 
 # -----------------------------
 # Create Incident Request
 # -----------------------------
 class IncidentCreate(IncidentBase):
-    pass
+    timeline: Optional[List[TimelineEvent]] = None
 
 
 # -----------------------------
