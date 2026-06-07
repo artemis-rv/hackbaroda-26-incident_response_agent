@@ -26,13 +26,17 @@ async def diagnose(incident_id: str):
 
     raw_diagnosis, memories = await diagnose_incident(incident)
     
+    import re
+    # Strip <think> tags (common in reasoning models) and extract JSON
+    clean_json = re.sub(r'<think>.*?</think>', '', raw_diagnosis, flags=re.DOTALL).strip()
+    if clean_json.startswith("```json"):
+        clean_json = clean_json[7:]
+    if clean_json.endswith("```"):
+        clean_json = clean_json[:-3]
+    clean_json = clean_json[clean_json.find('{'):clean_json.rfind('}')+1]
+
     try:
-        import re
-        match = re.search(r'\{.*\}', raw_diagnosis, re.DOTALL)
-        if match:
-            diag_data = json.loads(match.group())
-        else:
-            raise json.JSONDecodeError("No JSON found", raw_diagnosis, 0)
+        diag_data = json.loads(clean_json)
     except json.JSONDecodeError:
         diag_data = {
             "root_causes": ["Unknown"],
