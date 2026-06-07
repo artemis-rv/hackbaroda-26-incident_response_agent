@@ -100,3 +100,25 @@ async def resolve(incident_id: str, payload: IncidentResolve):
     await incident.save()
 
     return serialize_incident(incident)
+
+from app.services.rca_engine import generate_rca_report
+
+@router.post("/{incident_id}/rca", response_model=IncidentResponse)
+async def generate_rca(incident_id: str):
+    if not ObjectId.is_valid(incident_id):
+        raise HTTPException(status_code=400, detail="Invalid Incident ID")
+        
+    incident = await Incident.get(ObjectId(incident_id))
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    if not incident.resolution:
+        raise HTTPException(status_code=400, detail="Cannot generate RCA for an unresolved incident.")
+
+    if not incident.rca_report:
+        rca_markdown = await generate_rca_report(incident)
+        incident.rca_report = rca_markdown
+        incident.timeline.append(TimelineEvent(event="AI RCA Report generated"))
+        await incident.save()
+
+    return serialize_incident(incident)

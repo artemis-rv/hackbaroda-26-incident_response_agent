@@ -20,6 +20,8 @@ class Incident(Document):
     diagnosis: Optional[Diagnosis] = None
     resolution: Optional[Resolution] = None
     memory: Optional[Memory] = None
+    rca_report: Optional[str] = None
+    
     timeline: List[TimelineEvent] = []
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
