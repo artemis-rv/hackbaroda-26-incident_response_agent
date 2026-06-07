@@ -5,7 +5,7 @@ import json
 from app.models.incident import Incident
 from app.models.schemas import DiagnoseResponse, IncidentResolve, IncidentResponse, Resolution, TimelineEvent, Memory, Diagnosis, SimilarIncident
 from app.services.incident_engine import diagnose_incident
-from app.services.hindsight_client import retain_memory
+from app.services.memory_service import store_memory
 
 router = APIRouter()
 
@@ -23,8 +23,6 @@ async def diagnose(incident_id: str):
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    # In a real setup, we'd parse the LLM JSON output to fill these fields.
-    # For now, let's call the LLM and assume it returns JSON.
     raw_diagnosis, memories = await diagnose_incident(incident)
     
     try:
@@ -38,22 +36,29 @@ async def diagnose(incident_id: str):
             "prevention_steps": ["Ensure LLM returns valid JSON."]
         }
     
-    similar_incidents = []
-    for m in memories:
-        inc_id = m.get("metadata", {}).get("incident_id", "UNKNOWN")
-        similar_incidents.append(SimilarIncident(incident_id=inc_id, score=0.85))
+    ai_confidence = float(diag_data.get("confidence_score", 0.0))
+    avg_similarity = sum(m.similarity_score for m in memories) / len(memories) if memories else 0.0
+    
+    # Formula: AI confidence + similarity confidence scaled 0-100
+    if memories:
+        final_confidence_score = ((ai_confidence + avg_similarity) / 2) * 100
+    else:
+        final_confidence_score = ai_confidence * 100
+
+    # Ensure it's between 0 and 100
+    final_confidence_score = min(max(final_confidence_score, 0), 100)
     
     diagnosis_obj = Diagnosis(
         root_causes=diag_data.get("root_causes", ["Unknown"]),
-        confidence_score=diag_data.get("confidence_score", 0.0),
+        confidence_score=final_confidence_score,
         impact_analysis=diag_data.get("impact_analysis", "Unknown"),
         recommended_actions=diag_data.get("recommended_actions", []),
         prevention_steps=diag_data.get("prevention_steps", []),
-        similar_incidents=similar_incidents
+        similar_incidents=memories
     )
     
     incident.diagnosis = diagnosis_obj
-    incident.timeline.append(TimelineEvent(event="AI Diagnosis completed"))
+    incident.timeline.append(TimelineEvent(event="AI Diagnosis completed with Semantic Memory"))
     await incident.save()
 
     return DiagnoseResponse(
@@ -63,7 +68,7 @@ async def diagnose(incident_id: str):
         impact_analysis=diagnosis_obj.impact_analysis,
         recommended_actions=diagnosis_obj.recommended_actions,
         prevention_steps=diagnosis_obj.prevention_steps,
-        similar_incidents=similar_incidents,
+        similar_incidents=memories,
         investigation_mode=len(memories) == 0
     )
 
@@ -87,24 +92,10 @@ async def resolve(incident_id: str, payload: IncidentResolve):
     incident.resolved_at = datetime.utcnow()
     incident.timeline.append(TimelineEvent(event="Incident resolved"))
     
-    memory_text = f"""
-Resolved Incident:
-Title: {incident.title}
-Service: {incident.service}
-Severity: {incident.severity}
-Symptoms: {', '.join(incident.symptoms)}
-Root Cause: {incident.resolution.actual_root_cause}
-Resolution: {incident.resolution.fix_applied}
-Lessons Learned: {incident.resolution.lessons_learned}
-"""
-    await retain_memory(memory_text, metadata={
-        "incident_id": str(incident.id),
-        "service": incident.service,
-        "severity": incident.severity,
-        "status": incident.status
-    })
+    # Store incident in vector memory
+    await store_memory(incident, incident.resolution)
 
-    incident.memory = Memory(stored_in_hindsight=True, memory_summary="Retained in Hindsight")
+    incident.memory = Memory(stored_in_hindsight=True, memory_summary="Retained in Semantic Memory")
     await incident.save()
 
     return serialize_incident(incident)

@@ -7,4 +7,5 @@ DATABASE_URL = os.getenv("DATABASE_URL", "mongodb://localhost:27017/incidentiq")
 async def init_db():
     client = AsyncIOMotorClient(DATABASE_URL)
     from app.models.incident import Incident
-    await init_beanie(database=client.get_default_database(), document_models=[Incident])
+    from app.models.memory import MemoryStore
+    await init_beanie(database=client.get_default_database(), document_models=[Incident, MemoryStore])

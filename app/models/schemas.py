@@ -10,7 +10,10 @@ from pydantic import BaseModel, Field
 # -----------------------------
 class SimilarIncident(BaseModel):
     incident_id: str
-    score: float
+    title: str
+    root_cause: str
+    resolution: str
+    similarity_score: float
 
 
 # -----------------------------

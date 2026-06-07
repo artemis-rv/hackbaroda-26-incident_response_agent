@@ -43,7 +43,7 @@ export default function DiagnosePage() {
   if (error) return <div className="p-8 text-center text-destructive">Error: {error}</div>;
   if (!diagnosis) return null;
 
-  const confidencePercentage = Math.round((diagnosis.confidence_score || 0) * 100);
+  const confidencePercentage = Math.round(diagnosis.confidence_score || 0);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -78,10 +78,10 @@ export default function DiagnosePage() {
           
           <div className="mt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-muted-foreground">AI Confidence Score</span>
-              <span className="text-sm font-bold">{confidencePercentage}%</span>
+              <span className="text-sm font-medium text-muted-foreground">Combined Confidence Score (AI + Semantic Memory)</span>
+              <span className="text-sm font-bold text-primary">{confidencePercentage}/100</span>
             </div>
-            <Progress value={confidencePercentage} className="h-2" />
+            <Progress value={confidencePercentage} className="h-3" />
           </div>
         </CardContent>
       </Card>
@@ -156,11 +156,19 @@ export default function DiagnosePage() {
                 <p className="text-sm">No similar incidents found in memory. AI is performing a zero-shot diagnosis.</p>
               </div>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-4">
                 {diagnosis.similar_incidents?.map((sim, i) => (
-                  <li key={i} className="p-3 bg-secondary/30 rounded-lg border border-border text-sm flex justify-between items-center">
-                    <span className="truncate mr-4 font-mono text-muted-foreground">{sim.incident_id}</span>
-                    <span className="text-xs font-semibold px-2 py-1 bg-background rounded">Match: {Math.round(sim.score * 100)}%</span>
+                  <li key={i} className="p-4 bg-secondary/30 rounded-lg border border-border text-sm flex flex-col space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="font-semibold text-foreground truncate mr-2">{sim.title}</span>
+                      <span className="text-xs font-bold px-2 py-1 bg-primary/20 text-primary rounded whitespace-nowrap">
+                        {Math.round(sim.similarity_score * 100)}% Match
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground"><strong className="text-foreground">Root Cause:</strong> {sim.root_cause}</p>
+                      <p className="text-xs text-muted-foreground"><strong className="text-foreground">Resolution:</strong> {sim.resolution}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
