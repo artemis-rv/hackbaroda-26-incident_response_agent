@@ -2,17 +2,16 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { fetchIncident, generateRCAReport, IncidentResponse } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, ArrowLeft, BrainCircuit, ShieldCheck, Download, FileDown, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ToastProvider";
+import { Card, CardContent } from "@/components/ui/card";
+import { FileText, ArrowLeft, BrainCircuit, ShieldCheck, Download, FileDown, Loader2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-// @ts-ignore
-import html2pdf from "html2pdf.js";
 
 export default function ReportPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToast } = useToast();
   const [incident, setIncident] = useState<IncidentResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -33,9 +32,10 @@ export default function ReportPage() {
     try {
       const updatedIncident = await generateRCAReport(incident.incident_id);
       setIncident(updatedIncident);
+      addToast("RCA Report generated successfully!", "success");
     } catch (err) {
       console.error(err);
-      alert("Failed to generate RCA. Check console.");
+      addToast("Failed to generate RCA report", "error");
     } finally {
       setGenerating(false);
     }
@@ -52,45 +52,58 @@ export default function ReportPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    addToast("Markdown file downloaded", "info");
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!reportRef.current) return;
-    const element = reportRef.current;
+    const html2pdf = (await import("html2pdf.js")).default;
     const opt = {
-      margin:       10,
-      filename:     `RCA_${incident?.incident_id}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin: 10,
+      filename: `RCA_${incident?.incident_id}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
     };
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(reportRef.current).save();
+    addToast("PDF export started", "info");
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading report...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+        <div className="skeleton h-8 w-48" />
+        <div className="skeleton h-4 w-64" />
+        <div className="skeleton h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
   if (!incident || !incident.resolution) return <div className="p-8 text-center text-destructive">Report not available or incident not resolved.</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => router.push("/incidents")} className="p-2 hover:bg-secondary rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push("/incidents")} className="p-2 hover:bg-secondary rounded-lg transition-colors">
+            <ArrowLeft className="w-4 h-4 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">RCA Post-Mortem</h1>
-            <p className="text-muted-foreground mt-1">Incident {incident.incident_id}</p>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <FileText className="w-6 h-6 text-primary" />
+              RCA Post-Mortem
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Incident {incident.incident_id}</p>
           </div>
         </div>
-        
+
         {incident.rca_report && (
-          <div className="flex items-center space-x-3">
-            <button onClick={handleExportMarkdown} className="flex items-center px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md text-sm font-medium transition-colors">
-              <FileDown className="w-4 h-4 mr-2" />
-              Markdown
+          <div className="flex items-center gap-2">
+            <button onClick={handleExportMarkdown} className="flex items-center h-9 px-3 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors">
+              <FileDown className="w-4 h-4 mr-1.5" />
+              .md
             </button>
-            <button onClick={handleExportPDF} className="flex items-center px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-sm font-medium transition-colors">
-              <Download className="w-4 h-4 mr-2" />
+            <button onClick={handleExportPDF} className="flex items-center h-9 px-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-all shadow-lg shadow-primary/20">
+              <Download className="w-4 h-4 mr-1.5" />
               PDF
             </button>
           </div>
@@ -98,44 +111,40 @@ export default function ReportPage() {
       </div>
 
       {!incident.rca_report ? (
-        <Card className="border-primary/20 shadow-lg mt-8">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-primary" />
+        <Card className="border-primary/20 mt-8 overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+          <CardContent className="py-16 text-center relative">
+            <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-pulse-glow">
+              <BrainCircuit className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl">AI RCA Generator</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Transform this incident's timeline, diagnostics, and human resolution notes into a polished, SRE-formatted Root Cause Analysis document.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pt-6 pb-8">
-            <button 
-              onClick={handleGenerate} 
+            <h2 className="text-xl font-bold tracking-tight mb-2">AI RCA Generator</h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-8">
+              Transform this incident's lifecycle data into a professional, blameless SRE post-mortem document.
+            </p>
+            <button
+              onClick={handleGenerate}
               disabled={generating}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 inline-flex items-center justify-center rounded-md text-base font-medium transition-colors disabled:opacity-50"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
             >
               {generating ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Generating SRE Report...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating SRE Report...</>
               ) : (
-                <>
-                  <BrainCircuit className="w-5 h-5 mr-2" />
-                  Generate Professional RCA
-                </>
+                <><Zap className="w-4 h-4 mr-2" />Generate Professional RCA</>
               )}
             </button>
           </CardContent>
         </Card>
       ) : (
-        <Card className="mt-8 border-border/50 shadow-sm overflow-hidden bg-card">
-          <div className="bg-muted/30 border-b border-border/50 px-8 py-4 flex items-center">
-            <ShieldCheck className="w-5 h-5 text-green-500 mr-2" />
-            <span className="text-sm font-medium text-muted-foreground">Generated by AI SRE Engine</span>
+        <Card className="mt-4 overflow-hidden">
+          <div className="bg-secondary/30 border-b border-border px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-medium text-muted-foreground">Generated by AI SRE Engine</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono">{new Date().toLocaleDateString()}</span>
           </div>
           <CardContent className="p-8">
-            <div ref={reportRef} className="prose prose-zinc dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:pb-2 prose-a:text-primary">
+            <div ref={reportRef} className="prose prose-zinc dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-a:text-primary prose-pre:bg-[#0d0d0d] prose-pre:text-emerald-400 prose-code:text-primary prose-strong:text-foreground prose-li:text-sm">
               <ReactMarkdown>{incident.rca_report}</ReactMarkdown>
             </div>
           </CardContent>

@@ -8,7 +8,7 @@ class Incident(Document):
     title: str
     description: str
     symptoms: List[str]
-    severity: str = "medium"
+    severity: str = "P3 Medium"
     service: Optional[str] = None
     environment: str = "production"
     tags: List[str] = []

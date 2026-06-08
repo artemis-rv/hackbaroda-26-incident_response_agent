@@ -63,7 +63,7 @@ class IncidentBase(BaseModel):
     description: str
     symptoms: List[str]
 
-    severity: str = "medium"  # low, medium, high, critical
+    severity: str = "P3 Medium"  # P1 Critical, P2 High, P3 Medium, P4 Low
 
     service: Optional[str] = None
     environment: str = "production"
